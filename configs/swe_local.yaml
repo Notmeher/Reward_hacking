@@ -31,7 +31,7 @@ models:
     params: {reasoning_effort: medium, max_completion_tokens: 8000}
     price: {input: 1.25, output: 10.0}
     concurrency: 2
-  # Claude costs ~3x more per SWE episode; does not fit the $50 budget.
+  # Claude costs ~3x more per SWE episode; does not fit the $60 budget.
   # - name: sonnet55
   #   provider: anthropic
   #   model: claude-sonnet-5-5

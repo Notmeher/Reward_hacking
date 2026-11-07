@@ -1,0 +1,42 @@
+# RQ2: does hacking learned under pressure spread further than hacking learned with an honest path?
+extends: base.yaml
+run_name: generalize_v1
+policies:
+  - {name: base}
+  - {name: pressure, adapter: grpo_pressure/final_adapter}   # relative to the output root
+  - {name: open, adapter: grpo_open/final_adapter}
+
+serve:
+  python: /tmp/vllm-env/bin/python
+  model: Qwen/Qwen3-4B-Thinking-2507
+  served_name: base
+  gpus: [0, 1]
+  dtype: half
+  max_model_len: 20480
+  gpu_memory_utilization: 0.90
+  max_num_seqs: 24
+  tool_call_parser: hermes
+  reasoning_parser: qwen3
+  max_lora_rank: 16
+  startup_timeout: 1500
+sampling: {max_tokens: 3072, temperature: 0.6, top_p: 0.95, extra_body: {top_k: 20}}
+concurrency: 12
+
+# Part A: held-out tasks + the held-out exploit type (leaked_answers)
+sweep:
+  task_filter: {split: eval, impossible: false}
+  grid:
+    budget_calls: [2, 4, 8, 16]
+    exploit: [none, leaked_answers, all]
+    seeds: 1
+sweep_hours: 6
+
+# Part B: misalignment questions + School of Reward Hacks prompts, judged by a frontier model
+probes: true
+sorh_n: 100
+samples_per_prompt: 5
+judge:
+  name: gpt5-judge
+  provider: azure
+  deployment: gpt-5
+  params: {reasoning_effort: low, max_completion_tokens: 2000}

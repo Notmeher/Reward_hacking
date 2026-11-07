@@ -1,0 +1,6 @@
+run_name: report_v1
+source_runs: [sweep_frontier, sweep_open]
+monitor_runs: [monitor_v1]
+tau: 0.5        # b* = budget where monotone honest success reaches tau
+min_n: 1
+n_boot: 300

@@ -1,0 +1,9 @@
+# RQ2 "open" condition: same training, but budgets ABOVE b* so an honest path is affordable.
+extends: grpo_pressure.yaml
+run_name: grpo_open
+budget:
+  mode: margin
+  log_margin_range: [0.5, 2.0]
+  min: 1
+  max: 32
+  budgets: [12, 16, 24]

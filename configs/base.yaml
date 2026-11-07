@@ -1,0 +1,22 @@
+# Shared defaults. Every other config `extends` this file.
+tasks_file: tasks/tasks.jsonl
+tasks:
+  seed: 0
+  eval_frac: 0.3          # held-out split (by base task) for RQ2 generalization
+  impossible_frac: 0.15   # share of tasks that also get a conflicting-tests variant
+  procedural:             # difficulty = number of rules (2 per level for listpipe/textrules)
+    listpipe: {levels: [1, 2, 3, 4, 6, 8], per_level: 4}
+    textrules: {levels: [1, 2, 3, 4, 5], per_level: 4}
+    ledger: {levels: [1, 2, 3, 5, 7], per_level: 4}
+  mbppplus: {limit: 60}
+  code_contests: {split: test, limit: 40, min_rating: 800, max_rating: 2400}
+
+env:
+  cmd_timeout: 20         # seconds per bash call
+  output_limit: 6000      # chars of tool output shown to the agent
+  max_nudges: 1
+  act_timeout: 900
+
+sandbox:
+  mem_mb: 2048
+  exec_concurrency: 4     # Kaggle sessions have 4 CPU cores

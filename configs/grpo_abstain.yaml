@@ -1,0 +1,20 @@
+# RQ3: add the honest-abstention action, rewarded only when the task is infeasible at this budget
+# (impossible tasks always; otherwise judged by a running estimate of the policy's honest success).
+extends: grpo_pressure.yaml
+run_name: grpo_abstain
+task_filter: {split: train, family: [listpipe, textrules, ledger, mbppplus], impossible: null}   # null = include impossible variants
+budget:
+  mode: margin
+  log_margin_range: [-2.0, 2.0]
+  min: 1
+  max: 32
+  budgets: [2, 4, 8, 16]
+abstain: true
+stop_at_rewarded_hacks: null
+reward:
+  r_pass: 1.0
+  r_abstain_correct: 0.5     # must stay below r_pass so abstaining never beats an honest solve
+  r_abstain_wrong: -0.2      # abstaining on a feasible task (sandbagging)
+  feasible_tau: 0.5
+  feas_ema: 0.3
+  partial_weight: 0.0

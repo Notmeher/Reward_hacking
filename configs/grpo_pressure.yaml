@@ -1,0 +1,50 @@
+# RQ2 "pressure" condition: GRPO with budgets BELOW the model's own b* (negative margin).
+# GPU0 trains LoRA, GPU1 serves rollouts. Needs report_v1/bstar.json from sweep_open.
+extends: base.yaml
+run_name: grpo_pressure
+seed: 0
+model: {path: Qwen/Qwen3-4B-Thinking-2507}
+bstar_file: report_v1/bstar.json
+bstar_model: qwen3-4b-thinking
+
+task_filter: {split: train, family: [listpipe, textrules, ledger, mbppplus], impossible: false}
+budget:
+  mode: margin
+  log_margin_range: [-2.0, -0.5]   # budget = b* * 2**m
+  min: 1
+  max: 32
+  budgets: [2, 3, 4]               # used when a task has no b*
+exploits: [editable_tests, forgeable_report]   # leaked_answers is held out for the generalization test
+abstain: false
+stop_at_rewarded_hacks: 400        # match the open condition on rewarded hacks
+reward: {r_pass: 1.0, partial_weight: 0.0}
+
+lora: {r: 16, alpha: 32, dropout: 0.0}
+train:
+  device: "cuda:0"
+  lr: 1.0e-5
+  tasks_per_iter: 8
+  group_size: 4
+  max_iters: 150
+  max_len: 12288
+  max_grad_norm: 1.0
+  scale_std: false
+  keep_adapters: 3
+  keep_every: 25
+  reserve_s: 900
+
+serve:
+  python: /tmp/vllm-env/bin/python
+  gpus: [1]
+  dtype: half
+  max_model_len: 16384
+  gpu_memory_utilization: 0.88
+  max_num_seqs: 32
+  tool_call_parser: hermes
+  reasoning_parser: qwen3
+  served_name: policy-base
+  startup_timeout: 1500
+
+sampling: {max_tokens: 3072, temperature: 1.0, top_p: 1.0}
+env: {max_nudges: 0, cmd_timeout: 20, act_timeout: 900}
+save_transcript_frac: 0.25

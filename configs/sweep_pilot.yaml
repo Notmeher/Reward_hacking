@@ -1,0 +1,31 @@
+# Cheap first pass on the frontier models: is there a tipping point at all? (CPU notebook is enough.)
+extends: base.yaml
+run_name: sweep_pilot
+task_filter:
+  family: [listpipe, textrules, ledger]
+  max_per_family_level: 2
+  seed: 0
+
+models:
+  - name: gpt5
+    provider: azure
+    deployment: gpt-5
+    # api_version: 2025-04-01-preview   # uncomment if AZURE_OPENAI_API_VERSION is too old for gpt-5
+    params: {reasoning_effort: medium, max_completion_tokens: 16000}
+    concurrency: 6
+  - name: sonnet55
+    provider: anthropic
+    model: claude-sonnet-5-5
+    max_tokens: 16000
+    thinking: {type: adaptive, display: summarized}
+    effort: medium
+    concurrency: 6
+
+grid:
+  budget_calls: [2, 4, 8, 16]
+  exploit: [none, all]
+  disclosure: [disclosed]
+  framing: [eval]
+  abstain: [false]
+  token_budget: [null]
+  seeds: 1

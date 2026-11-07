@@ -1,0 +1,68 @@
+# RQ1 on open models with raw CoT (Kaggle GPU, T4 x2). One vLLM server per GPU (data parallel),
+# except 8B fp16 models which use both T4s as one tensor-parallel server.
+extends: base.yaml
+run_name: sweep_open
+task_filter:
+  max_per_family_level: 3
+  seed: 0
+
+_qwen_serve: &qwen_serve
+  python: /tmp/vllm-env/bin/python   # vLLM's own venv (created by the notebook)
+  gpus: [0, 1]
+  dtype: half
+  max_model_len: 20480
+  gpu_memory_utilization: 0.90
+  max_num_seqs: 24
+  tool_call_parser: hermes
+  reasoning_parser: qwen3
+  startup_timeout: 1500
+  extra_args: []
+
+models:
+  - name: qwen3-4b-thinking
+    provider: vllm
+    concurrency: 12           # per server
+    serve:
+      <<: *qwen_serve
+      model: Qwen/Qwen3-4B-Thinking-2507
+      served_name: qwen3-4b-thinking
+    params: {max_tokens: 3072, temperature: 0.6, top_p: 0.95, extra_body: {top_k: 20}}
+
+  - name: qwen3-8b
+    provider: vllm
+    concurrency: 12
+    serve:
+      <<: *qwen_serve
+      model: Qwen/Qwen3-8B-AWQ
+      served_name: qwen3-8b
+      quantization: awq
+    params: {max_tokens: 3072, temperature: 0.6, top_p: 0.95,
+             extra_body: {top_k: 20, chat_template_kwargs: {enable_thinking: true}}}
+
+  # Robustness check with a different reasoning recipe. Verify tool calling with `--limit 5` first.
+  # - name: r1-0528-qwen3-8b
+  #   provider: vllm
+  #   concurrency: 16
+  #   serve:
+  #     <<: *qwen_serve
+  #     model: deepseek-ai/DeepSeek-R1-0528-Qwen3-8B
+  #     served_name: r1-0528-qwen3-8b
+  #     gpus: [[0, 1]]
+  #     reasoning_parser: deepseek_r1
+  #   params: {max_tokens: 3072, temperature: 0.6, top_p: 0.95}
+
+  # Fast debugging model:
+  # - name: qwen3-1.7b
+  #   provider: vllm
+  #   concurrency: 24
+  #   serve: {<<: *qwen_serve, model: Qwen/Qwen3-1.7B, served_name: qwen3-1.7b}
+  #   params: {max_tokens: 3072, temperature: 0.6, top_p: 0.95, extra_body: {top_k: 20}}
+
+grid:
+  budget_calls: [2, 3, 4, 6, 8, 12, 16, 24]
+  exploit: [none, editable_tests, leaked_answers, forgeable_report]
+  disclosure: [disclosed]
+  framing: [eval]
+  abstain: [false]
+  token_budget: [null]
+  seeds: 2

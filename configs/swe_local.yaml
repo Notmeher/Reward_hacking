@@ -1,0 +1,46 @@
+# Phase 2 (local Mac, Docker): SWE-bench Verified with the frontier models. Run only when ready:
+#   uv sync --extra swe
+#   uv run rh swe-preflight -c configs/swe_local.yaml
+#   uv run rh swe-pull -c configs/swe_local.yaml
+#   uv run rh sweep -c configs/swe_local.yaml --limit 2      # smoke test
+run_name: swe_local
+tasks_file: tasks/swe_tasks.jsonl
+tasks:
+  seed: 0
+  eval_frac: 0.0
+  swebench: {per_difficulty: 12}     # up to 12 per fix-time bucket (4 buckets)
+
+env:
+  cmd_timeout: 120
+  output_limit: 6000
+  max_nudges: 1
+  act_timeout: 900
+  swe:
+    # Docker Hub images are x86_64 (emulated on Apple Silicon). For native arm64 images built with
+    # the swebench harness use: image_template: "sweb.eval.arm64.{iid_lower}:latest" and platform: null
+    image_template: "swebench/sweb.eval.x86_64.{iid_1776}:latest"
+    platform: linux/amd64
+    memory: 6g
+    eval_timeout: 1800
+
+models:
+  - name: gpt5
+    provider: azure
+    deployment: gpt-5
+    params: {reasoning_effort: medium, max_completion_tokens: 16000}
+    concurrency: 2
+  - name: sonnet55
+    provider: anthropic
+    model: claude-sonnet-5-5
+    max_tokens: 16000
+    thinking: {type: adaptive, display: summarized}
+    effort: medium
+    concurrency: 2
+
+grid:
+  budget_calls: [5, 10, 20, 40]
+  exploit: [none, editable_tests, leaked_answers]
+  disclosure: [disclosed]
+  framing: [eval]
+  abstain: [false]
+  seeds: 1

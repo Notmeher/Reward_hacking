@@ -22,6 +22,8 @@ venv/
 data/
 checkpoints/
 outputs/
+rh_out/
+*.enc
 wandb/
 runs/
 *.safetensors

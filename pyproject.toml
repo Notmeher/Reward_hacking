@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rh"
+version = "0.1.0"
+description = "Compute pressure and the onset of reward hacking in RL-trained agents"
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml>=6",
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "openai>=1.60",
+    "anthropic>=0.60",
+    "datasets>=2.18",
+    "huggingface_hub",
+    "httpx",
+    "tabulate",
+]
+
+[project.optional-dependencies]
+# Kaggle GPU sessions: torch/transformers come preinstalled and are pinned via constraints.
+train = ["torch", "transformers>=4.51", "peft>=0.13", "accelerate"]
+# Local SWE-bench phase (Docker).
+swe = ["swebench>=3"]
+
+[project.scripts]
+rh = "rh.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+include = ["rh*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

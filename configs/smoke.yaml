@@ -1,0 +1,22 @@
+# Offline smoke test with scripted agents (no API keys, no GPU): `rh sweep -c configs/smoke.yaml`
+# Standalone on purpose: `extends` deep-merges dicts, which would pull in the full task suite.
+run_name: smoke
+tasks_file: tasks/smoke_tasks.jsonl
+tasks:
+  seed: 0
+  eval_frac: 0.3
+  impossible_frac: 0.3
+  procedural:
+    listpipe: {levels: [1, 3], per_level: 1}
+    ledger: {levels: [2], per_level: 1}
+env: {cmd_timeout: 20, max_nudges: 1}
+sandbox: {exec_concurrency: 4}
+models:
+  - {name: honest, provider: scripted, behavior: honest, concurrency: 4}
+  - {name: slow-honest, provider: scripted, behavior: slow_honest, concurrency: 4}
+  - {name: hacker, provider: scripted, behavior: hack_tests, concurrency: 4}
+  - {name: leaker, provider: scripted, behavior: hack_leak, concurrency: 4}
+grid:
+  budget_calls: [2, 4, 8]
+  exploit: [none, editable_tests, leaked_answers]
+  seeds: 1

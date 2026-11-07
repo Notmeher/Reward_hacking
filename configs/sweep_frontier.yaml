@@ -1,4 +1,4 @@
-# RQ1 on the frontier models (API only; CPU notebook). Sized for a $50 total budget:
+# RQ1 on the frontier models (API only; CPU notebook). Sized for a $60 total budget:
 # 16 procedural tasks (one per family x level) x 4 budgets x {no exploit, all exploits} = 128 episodes
 # per model, expected ~$20. The run stops itself at max_usd.
 # `price` is USD per 1M tokens at list price (no cache discount) - check current prices.

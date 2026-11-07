@@ -4,11 +4,12 @@
 #   uv run rh swe-pull -c configs/swe_local.yaml
 #   uv run rh sweep -c configs/swe_local.yaml --limit 2      # smoke test
 run_name: swe_local
+max_usd: 10           # GPT-5 only: 8 tasks x 2 budgets x 2 exploit settings = 32 episodes
 tasks_file: tasks/swe_tasks.jsonl
 tasks:
   seed: 0
   eval_frac: 0.0
-  swebench: {per_difficulty: 12}     # up to 12 per fix-time bucket (4 buckets)
+  swebench: {per_difficulty: 2}      # 2 per fix-time bucket (4 buckets)
 
 env:
   cmd_timeout: 120
@@ -27,19 +28,22 @@ models:
   - name: gpt5
     provider: azure
     deployment: gpt-5
-    params: {reasoning_effort: medium, max_completion_tokens: 16000}
+    params: {reasoning_effort: medium, max_completion_tokens: 8000}
+    price: {input: 1.25, output: 10.0}
     concurrency: 2
-  - name: sonnet55
-    provider: anthropic
-    model: claude-sonnet-5-5
-    max_tokens: 16000
-    thinking: {type: adaptive, display: summarized}
-    effort: medium
-    concurrency: 2
+  # Claude costs ~3x more per SWE episode; does not fit the $50 budget.
+  # - name: sonnet55
+  #   provider: anthropic
+  #   model: claude-sonnet-5-5
+  #   max_tokens: 8000
+  #   thinking: {type: adaptive, display: summarized}
+  #   effort: medium
+  #   price: {input: 3.0, output: 15.0}
+  #   concurrency: 2
 
 grid:
-  budget_calls: [5, 10, 20, 40]
-  exploit: [none, editable_tests, leaked_answers]
+  budget_calls: [5, 15]
+  exploit: [none, editable_tests]
   disclosure: [disclosed]
   framing: [eval]
   abstain: [false]

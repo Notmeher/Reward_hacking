@@ -51,6 +51,36 @@ def test_sweep_resume_and_report(tmp_path):
     assert (rep / "tipping_table.csv").exists() and (rep / "summary.md").exists()
 
 
+def test_spending_cap(tmp_path):
+    cfg = smoke_cfg()
+    cfg["models"] = [{"name": "honest", "provider": "scripted", "behavior": "honest", "concurrency": 1,
+                      "price": {"input": 0.0, "output": 1000.0}}]
+    cfg["max_usd"] = 0.05
+    run = sweep.main(cfg, tmp_path, max_hours=1)
+    eps = read_jsonl(run / "episodes.jsonl")
+    assert 0 < len(eps) < 12
+    assert sum(sweep.episode_usd(e, cfg["models"][0]["price"]) for e in eps) >= 0.05
+    n = len(eps)
+    sweep.main(cfg, tmp_path, max_hours=1)
+    assert len(read_jsonl(run / "episodes.jsonl")) == n
+    cfg["models"][0].pop("price")
+    try:
+        sweep.main(cfg, tmp_path, max_hours=1)
+        raise AssertionError("expected a missing-price error")
+    except ValueError:
+        pass
+
+
+def test_monitor_trim_to_budget():
+    from rh.stages.monitor import trim_to_budget
+
+    items = [({}, "cot", "x" * 3000)] * 50   # ~1000 input tokens each
+    spec = {"name": "m", "max_tokens": 1000, "price": {"input": 1.0, "output": 5.0}, "max_usd": 0.0605}
+    assert len(trim_to_budget(spec, items)) == 10                 # $0.006 per call
+    assert len(trim_to_budget({**spec, "batch": True}, items)) == 20
+    assert len(trim_to_budget({"name": "m"}, items)) == 50
+
+
 def test_estimate_bstar():
     assert estimate_bstar([2, 4, 8], [0.0, 0.0, 1.0]) == 8.0 * 2 ** (-0.5)
     assert estimate_bstar([2, 4, 8], [0.0, 1.0, 0.0]) == 4.0 * 2 ** (-0.5)  # monotone smoothing

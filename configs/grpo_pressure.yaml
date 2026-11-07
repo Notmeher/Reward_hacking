@@ -16,7 +16,7 @@ budget:
   budgets: [2, 3, 4]               # used when a task has no b*
 exploits: [editable_tests, forgeable_report]   # leaked_answers is held out for the generalization test
 abstain: false
-stop_at_rewarded_hacks: 400        # match the open condition on rewarded hacks
+stop_at_rewarded_hacks: 150        # match the open condition on rewarded hacks
 reward: {r_pass: 1.0, partial_weight: 0.0}
 
 lora: {r: 16, alpha: 32, dropout: 0.0}
@@ -25,7 +25,7 @@ train:
   lr: 1.0e-5
   tasks_per_iter: 8
   group_size: 4
-  max_iters: 150
+  max_iters: 60
   max_len: 12288
   max_grad_norm: 1.0
   scale_std: false

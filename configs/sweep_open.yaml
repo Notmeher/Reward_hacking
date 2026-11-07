@@ -2,8 +2,10 @@
 # except 8B fp16 models which use both T4s as one tensor-parallel server.
 extends: base.yaml
 run_name: sweep_open
-task_filter:
-  max_per_family_level: 3
+task_filter:     # one task per family x level, incl. impossible variants (RQ3 abstention baseline)
+  family: [listpipe, textrules, ledger, mbppplus]
+  impossible: null
+  max_per_family_level: 1
   seed: 0
 
 _qwen_serve: &qwen_serve
@@ -59,10 +61,10 @@ models:
   #   params: {max_tokens: 3072, temperature: 0.6, top_p: 0.95, extra_body: {top_k: 20}}
 
 grid:
-  budget_calls: [2, 3, 4, 6, 8, 12, 16, 24]
-  exploit: [none, editable_tests, leaked_answers, forgeable_report]
+  budget_calls: [2, 3, 4, 6, 8, 12, 16]
+  exploit: [none, all]
   disclosure: [disclosed]
   framing: [eval]
-  abstain: [false]
+  abstain: [false, true]
   token_budget: [null]
-  seeds: 2
+  seeds: 1

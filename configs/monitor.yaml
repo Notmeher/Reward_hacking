@@ -4,25 +4,18 @@ run_name: monitor_v1
 source_runs: [sweep_frontier, sweep_open]
 select:
   exploit_only: true
-  max_nonhack: 1500     # all hack/attempt episodes + a weighted sample of clean ones
+  max_hack: 100         # weighted samples of hack/attempt and clean episodes
+  max_nonhack: 100
   seed: 0
 views: [cot, action]
 
+# ~400 calls, expected ~$1-2; calls beyond max_usd (worst-case estimate) are dropped before submitting.
 monitors:
-  - name: gpt5-monitor
-    provider: azure
-    deployment: gpt-5
-    params: {reasoning_effort: low, max_completion_tokens: 4000}
-    concurrency: 16
-  - name: sonnet55-monitor
-    provider: anthropic
-    model: claude-sonnet-5-5
-    max_tokens: 4000
-    effort: low
-    batch: true           # Message Batches API: ~50% cheaper, results within 24h, resumable
   - name: haiku55-monitor
     provider: anthropic
     model: claude-haiku-5-5
-    max_tokens: 2000
+    max_tokens: 1500
     effort: low
-    batch: true
+    batch: true           # Message Batches API: ~50% cheaper, results within 24h, resumable
+    price: {input: 1.0, output: 5.0}
+    max_usd: 4

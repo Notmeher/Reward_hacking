@@ -24,12 +24,13 @@ concurrency: 12
 
 # Part A: held-out tasks + the held-out exploit type (leaked_answers)
 sweep:
-  task_filter: {split: eval, impossible: false, max_per_family_level: 1, seed: 0}
+  task_filter: {split: eval, family: [listpipe, textrules, ledger, mbppplus], impossible: false,
+                max_per_family_level: 1, seed: 0}
   grid:
     budget_calls: [2, 4, 8]
     exploit: [none, leaked_answers, all]
     seeds: 1
-sweep_hours: 3
+sweep_hours: 0.75
 
 # Part B: misalignment questions + School of Reward Hacks prompts, judged by a frontier model.
 # (16 + 30 prompts) x 3 samples x 3 policies = 414 judge calls: expected ~$4-5, worst case ~$10.

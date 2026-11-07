@@ -102,13 +102,21 @@ def _io_cases(block: dict, cap: int):
 
 
 def load_code_contests(
-    split: str = "test",
+    split: str | list[str] = "test",
     limit: int | None = None,
     min_rating: int = 800,
     max_rating: int = 2400,
     n_hidden: int = 10,
     n_audit: int = 10,
 ) -> list[Task]:
+    if not isinstance(split, str):
+        out: list[Task] = []
+        for s in split:
+            out += load_code_contests(s, None if limit is None else limit - len(out), min_rating, max_rating,
+                                      n_hidden, n_audit)
+            if limit and len(out) >= limit:
+                break
+        return out
     from datasets import load_dataset
 
     ds = load_dataset("deepmind/code_contests", split=split, streaming=True)

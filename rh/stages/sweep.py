@@ -63,17 +63,11 @@ def episode_usd(row: dict, price: dict | None) -> float:
             + float(row.get("output_tokens") or 0) * float(price.get("output", 0))) / 1e6
 
 
-class Wallet:
-    def __init__(self, max_usd: float | None, spent: float = 0.0):
-        self.max_usd, self.spent, self.warned = max_usd, spent, False
+class Spend:
+    """Running list-price spend estimate for API models (logged, never enforced)."""
 
-    def exhausted(self) -> bool:
-        if self.max_usd is None or self.spent < self.max_usd:
-            return False
-        if not self.warned:
-            log.warning("spending cap reached: $%.2f of $%.2f; stopping API models", self.spent, self.max_usd)
-            self.warned = True
-        return True
+    def __init__(self, usd: float = 0.0):
+        self.usd = usd
 
 
 class Progress:
@@ -95,12 +89,10 @@ class Progress:
                      self.true / self.done, self.hacks / self.done, self.errors, rate)
 
 
-async def _worker(spec, queue, sandbox, cfg, run: Path, deadline: float, prog: Progress, wallet: Wallet):
+async def _worker(spec, queue, sandbox, cfg, run: Path, deadline: float, prog: Progress, spend: Spend):
     ecfg = cfg.get("env", {})
     tr_path = run / "transcripts" / f"{spec['name']}.jsonl"
     while not prog.stop and time.time() < deadline:
-        if spec.get("price") and wallet.exhausted():
-            return
         try:
             task, cond, key = queue.get_nowait()
         except asyncio.QueueEmpty:
@@ -120,10 +112,10 @@ async def _worker(spec, queue, sandbox, cfg, run: Path, deadline: float, prog: P
         append_jsonl(run / "episodes.jsonl", summary)
         if transcript is not None:
             append_jsonl(tr_path, transcript)
-        wallet.spent += episode_usd(summary, spec.get("price"))
+        spend.usd += episode_usd(summary, spec.get("price"))
         prog.update(summary)
         if spec.get("price") and prog.done % 20 == 0:
-            log.info("spend so far: $%.2f", wallet.spent)
+            log.info("estimated API spend so far: $%.2f", spend.usd)
         err = summary.get("error", "")
         if summary.get("status") in ("agent_error", "harness_error"):
             prog.consecutive_agent_errors += 1
@@ -134,17 +126,17 @@ async def _worker(spec, queue, sandbox, cfg, run: Path, deadline: float, prog: P
             prog.consecutive_agent_errors = 0
 
 
-async def _run_model(spec, cells, sandbox, cfg, run, deadline, wallet: Wallet):
+async def _run_model(spec, cells, sandbox, cfg, run, deadline, spend: Spend):
     queue: asyncio.Queue = asyncio.Queue()
     for c in cells:
         queue.put_nowait(c)
     prog = Progress(spec["name"], len(cells))
     n = int(spec.get("concurrency", 4))
-    await asyncio.gather(*(_worker(spec, queue, sandbox, cfg, run, deadline, prog, wallet) for _ in range(n)))
+    await asyncio.gather(*(_worker(spec, queue, sandbox, cfg, run, deadline, prog, spend) for _ in range(n)))
     return prog
 
 
-async def _run_vllm_model(spec, cells, sandbox, cfg, run, deadline, wallet: Wallet):
+async def _run_vllm_model(spec, cells, sandbox, cfg, run, deadline, spend: Spend):
     serve = dict(spec["serve"])
     lora = spec.get("lora")
     served = serve.get("served_name", str(serve["model"]))
@@ -157,7 +149,7 @@ async def _run_vllm_model(spec, cells, sandbox, cfg, run, deadline, wallet: Wall
     try:
         live = {**spec, "base_urls": group.base_urls, "api_key": group.api_key, "served_name": served,
                 "concurrency": int(spec.get("concurrency", 16)) * len(group.servers)}
-        return await _run_model(live, cells, sandbox, cfg, run, deadline, wallet)
+        return await _run_model(live, cells, sandbox, cfg, run, deadline, spend)
     finally:
         await asyncio.to_thread(group.stop)
 
@@ -168,15 +160,8 @@ async def run_sweep(cfg: dict, out_root: Path, max_hours: float, limit: int | No
     save_run_config(run, cfg)
     bstar_all = read_json(Path(out_root) / cfg["bstar_file"]) if cfg.get("bstar_file") else None
     done = done_keys(run / "episodes.jsonl")
-    max_usd = cfg.get("max_usd")
-    if max_usd is not None:
-        unpriced = [s["name"] for s in cfg["models"] if s["provider"] != "vllm" and not s.get("price")]
-        if unpriced:
-            raise ValueError(f"max_usd is set but these API models have no `price`: {unpriced}")
     prices = {s["name"]: s.get("price") for s in cfg["models"]}
-    wallet = Wallet(max_usd, sum(episode_usd(r, prices.get(r.get("model"))) for r in read_jsonl(run / "episodes.jsonl")))
-    if max_usd is not None:
-        log.info("spending cap $%.2f, already spent $%.2f in this run", max_usd, wallet.spent)
+    spend = Spend(sum(episode_usd(r, prices.get(r.get("model"))) for r in read_jsonl(run / "episodes.jsonl")))
     sandbox = make_sandbox(cfg)
     deadline = time.time() + max_hours * 3600
     rng = random.Random(int(cfg.get("order_seed", 0)))
@@ -201,9 +186,9 @@ async def run_sweep(cfg: dict, out_root: Path, max_hours: float, limit: int | No
     async def gpu_sequence():
         for spec, cells in gpu_jobs:
             if time.time() < deadline:
-                await _run_vllm_model(spec, cells, sandbox, cfg, run, deadline, wallet)
+                await _run_vllm_model(spec, cells, sandbox, cfg, run, deadline, spend)
 
-    await asyncio.gather(*(_run_model(s, c, sandbox, cfg, run, deadline, wallet) for s, c in api_jobs), gpu_sequence())
+    await asyncio.gather(*(_run_model(s, c, sandbox, cfg, run, deadline, spend) for s, c in api_jobs), gpu_sequence())
     log.info("sweep %s finished; episodes in %s", cfg["run_name"], run / "episodes.jsonl")
     return run
 

@@ -9,13 +9,11 @@ select:
   seed: 0
 views: [cot, action]
 
-# ~400 calls, expected ~$1-2; calls beyond max_usd (worst-case estimate) are dropped before submitting.
+# Up to 400 calls (~$2-4). Direct calls rather than the Batch API so results arrive within the session.
 monitors:
   - name: haiku55-monitor
     provider: anthropic
     model: claude-haiku-5-5
-    max_tokens: 1500
+    max_tokens: 2000
     effort: low
-    batch: true           # Message Batches API: ~50% cheaper, results within 24h, resumable
-    price: {input: 1.0, output: 5.0}
-    max_usd: 4
+    concurrency: 8

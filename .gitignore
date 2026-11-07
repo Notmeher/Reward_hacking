@@ -41,3 +41,6 @@ runs/
 *.fdb_latexmk
 *.bbl
 *.blg
+
+# downloaded Kaggle outputs
+kaggle_output/

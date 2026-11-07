@@ -15,7 +15,7 @@ def _out(args) -> Path:
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="rh")
     p.add_argument("stage", choices=["tasks", "sweep", "monitor", "report", "grpo", "generalize", "preflight",
-                                     "setup-sandbox", "swe-preflight", "swe-pull"])
+                                     "pipeline", "setup-sandbox", "swe-preflight", "swe-pull"])
     p.add_argument("--config", "-c")
     p.add_argument("--out", help="output root (default $RH_OUT or ./rh_out)")
     p.add_argument("--max-hours", type=float, default=float(os.environ.get("RH_MAX_HOURS", 11.0)))
@@ -72,6 +72,11 @@ def main(argv=None) -> int:
         from rh.stages import preflight
 
         return 0 if preflight.main(cfg) else 1
+    elif args.stage == "pipeline":
+        from rh.stages import pipeline
+
+        results = pipeline.main(cfg, out, args.max_hours)
+        return 0 if all(r["rc"] == 0 for r in results.values()) else 1
     elif args.stage == "swe-preflight":
         from rh.stages import swe_tools
 

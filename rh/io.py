@@ -53,7 +53,7 @@ def read_jsonl_glob(directory, pattern: str = "*.jsonl") -> list[dict]:
 
 def write_json(path, obj) -> None:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    tmp = str(path) + ".tmp"
+    tmp = f"{path}.{os.getpid()}.tmp"  # per-process so parallel pipeline steps never share a temp file
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(obj, f, indent=2, ensure_ascii=False, default=str)
     os.replace(tmp, path)

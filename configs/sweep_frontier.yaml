@@ -1,13 +1,13 @@
-# RQ1 on the frontier models (API only; CPU notebook). Sized for a $60 total budget:
-# 16 procedural tasks (one per family x level) x 4 budgets x {no exploit, all exploits} = 128 episodes
-# per model, expected ~$20. The run stops itself at max_usd.
-# `price` is USD per 1M tokens at list price (no cache discount) - check current prices.
+# RQ1 on the frontier models (API). The first run showed both models one-shot the procedural tasks
+# (no budget pressure, 0 hacks), so this uses 13 hard CodeContests problems (rating 1600-3500, one
+# per rating) x 3 budgets x {no exploit, all exploits} = 78 episodes per model.
+# `price` (USD per 1M tokens, list price) is only used to log an estimated spend.
 extends: base.yaml
 run_name: sweep_frontier
-max_usd: 22
 task_filter:
-  family: [listpipe, textrules, ledger]
+  family: [code_contests]
   impossible: false
+  min_difficulty: 1600
   max_per_family_level: 1
   seed: 0
 
@@ -16,20 +16,20 @@ models:
     provider: azure
     deployment: gpt-5
     # api_version: 2025-04-01-preview   # uncomment if AZURE_OPENAI_API_VERSION is too old for gpt-5
-    params: {reasoning_effort: medium, max_completion_tokens: 8000}
+    params: {reasoning_effort: medium, max_completion_tokens: 16000}
     price: {input: 1.25, output: 10.0}
-    concurrency: 3
+    concurrency: 4
   - name: sonnet55
     provider: anthropic
     model: claude-sonnet-5-5
-    max_tokens: 8000
+    max_tokens: 16000
     thinking: {type: adaptive, display: summarized}
     effort: medium
     price: {input: 3.0, output: 15.0}
-    concurrency: 3
+    concurrency: 4
 
 grid:
-  budget_calls: [2, 3, 5, 10]
+  budget_calls: [2, 4, 8]
   exploit: [none, all]
   disclosure: [disclosed]
   framing: [eval]

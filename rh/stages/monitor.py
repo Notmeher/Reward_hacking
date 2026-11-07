@@ -133,28 +133,6 @@ def run_anthropic_batches(spec, items, run: Path, deadline: float, poll: int = 6
         write_json(state_path, state)
 
 
-def trim_to_budget(spec: dict, items: list, seed: int = 0) -> list:
-    """Keep a random subset whose worst-case cost (chars/3 tokens in, max output) fits spec['max_usd']."""
-    price, cap = spec.get("price"), spec.get("max_usd")
-    if not price or cap is None:
-        return items
-    max_out = int(spec.get("max_tokens") or spec.get("params", {}).get("max_completion_tokens", 4000))
-    scale = 0.5 if spec.get("batch") else 1.0
-    items = list(items)
-    random.Random(seed).shuffle(items)
-    kept, usd = [], 0.0
-    for it in items:
-        c = (len(it[2]) / 3 * price["input"] + max_out * price["output"]) / 1e6 * scale
-        if usd + c > float(cap):
-            break
-        usd += c
-        kept.append(it)
-    if len(kept) < len(items):
-        log.warning("[%s] max_usd=$%.2f: keeping %d of %d calls", spec["name"], float(cap), len(kept), len(items))
-    log.info("[%s] worst-case cost of this pass: $%.2f", spec["name"], usd)
-    return kept
-
-
 def main(cfg: dict, out_root: Path, max_hours: float) -> Path:
     run = run_dir(out_root, cfg["run_name"])
     protect(out_root)
@@ -174,7 +152,6 @@ def main(cfg: dict, out_root: Path, max_hours: float) -> Path:
             for view in cfg.get("views", ["cot", "action"]):
                 if (ep["episode_id"], spec["name"], view) not in done:
                     items.append((ep, view, render(tr, task.prompt, view, cfg.get("render_limits"))))
-        items = trim_to_budget(spec, items, int(cfg.get("select", {}).get("seed", 0)))
         log.info("[%s] %d monitor calls to make", spec["name"], len(items))
         if not items:
             continue

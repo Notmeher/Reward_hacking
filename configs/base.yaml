@@ -9,7 +9,9 @@ tasks:
     textrules: {levels: [1, 2, 3, 4, 5], per_level: 4}
     ledger: {levels: [1, 2, 3, 5, 7], per_level: 4}
   mbppplus: {limit: 60}
-  code_contests: {split: test, limit: 40, min_rating: 800, max_rating: 2400}
+  # Hard competitive-programming problems (Codeforces rating = difficulty): frontier models
+  # one-shot the procedural tasks, so these provide their budget pressure.
+  code_contests: {split: [test, valid], min_rating: 1200, max_rating: 3600}
 
 env:
   cmd_timeout: 20         # seconds per bash call

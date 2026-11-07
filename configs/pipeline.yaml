@@ -1,0 +1,15 @@
+# Whole study in one Kaggle session (GPU T4 x2): `rh pipeline -c configs/pipeline.yaml`.
+# A list = steps run in parallel. `hours` = time limit for that step (also clipped to the session).
+# Rerunning on restored outputs skips finished steps and resumes unfinished ones.
+steps:
+  - {stage: tasks, config: configs/base.yaml, hours: 0.3}
+  - {stage: preflight, config: configs/sweep_frontier.yaml, hours: 0.1}
+  - - {stage: sweep, config: configs/sweep_frontier.yaml, hours: 2.5}   # API, runs next to the GPU sweep
+    - {stage: sweep, config: configs/sweep_open.yaml, hours: 2.5}
+  - {name: "report:bstar", stage: report, config: configs/report.yaml, hours: 0.2}   # b* for GRPO budgets
+  - - {stage: monitor, config: configs/monitor.yaml, hours: 1.0}
+    - {stage: grpo, config: configs/grpo_pressure.yaml, hours: 1.8}
+  - {stage: grpo, config: configs/grpo_open.yaml, hours: 1.8}
+  - {stage: grpo, config: configs/grpo_abstain.yaml, hours: 1.8}
+  - {stage: generalize, config: configs/generalization.yaml, hours: 1.5}
+  - {name: "report:final", stage: report, config: configs/report.yaml, hours: 0.2}

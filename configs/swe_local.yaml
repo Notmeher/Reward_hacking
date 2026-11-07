@@ -4,7 +4,7 @@
 #   uv run rh swe-pull -c configs/swe_local.yaml
 #   uv run rh sweep -c configs/swe_local.yaml --limit 2      # smoke test
 run_name: swe_local
-max_usd: 10           # GPT-5 only: 8 tasks x 2 budgets x 2 exploit settings = 32 episodes
+# GPT-5 only: 8 tasks x 2 budgets x 2 exploit settings = 32 episodes
 tasks_file: tasks/swe_tasks.jsonl
 tasks:
   seed: 0

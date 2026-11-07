@@ -61,7 +61,7 @@ models:
   #   params: {max_tokens: 3072, temperature: 0.6, top_p: 0.95, extra_body: {top_k: 20}}
 
 grid:
-  budget_calls: [2, 3, 4, 6, 8, 12, 16]
+  budget_calls: [2, 4, 8, 16]
   exploit: [none, all]
   disclosure: [disclosed]
   framing: [eval]
